@@ -1,0 +1,16 @@
+{
+  "name": "trip-planner",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "pnpm -F @trip-planner/db prisma generate",
+    "db:push": "pnpm -F @trip-planner/db prisma db push"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

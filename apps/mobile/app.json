@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Trip Planner",
+    "slug": "trip-planner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "newArchEnabled": true
+  }
+}

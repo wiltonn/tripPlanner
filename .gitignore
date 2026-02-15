@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.next/
+.turbo/
+.env
+.env.local
+*.tsbuildinfo
+
+# Prisma
+infra/db/prisma/generated/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

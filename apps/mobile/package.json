@@ -1,0 +1,21 @@
+{
+  "name": "@trip-planner/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "App.tsx",
+  "scripts": {
+    "dev": "expo start",
+    "build": "echo 'Mobile build not configured'",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo": "~52.0.0",
+    "react": "^18.3.0",
+    "react-native": "0.76.0",
+    "@trip-planner/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/react": "^18.3.0"
+  }
+}
