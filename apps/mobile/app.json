@@ -10,8 +10,7 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsImpl": "mapbox",
-          "RNMapboxMapsDownloadToken": "MAPBOX_SECRET_TOKEN_PLACEHOLDER"
+          "RNMapboxMapsImpl": "mapbox"
         }
       ]
     ],

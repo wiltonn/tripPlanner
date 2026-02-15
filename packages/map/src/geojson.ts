@@ -8,7 +8,12 @@ export interface GeoJSONPoint {
   coordinates: [number, number];
 }
 
-export interface GeoJSONFeature<G = GeoJSONLineString | GeoJSONPoint> {
+export interface GeoJSONPolygon {
+  type: "Polygon";
+  coordinates: [number, number][][];
+}
+
+export interface GeoJSONFeature<G = GeoJSONLineString | GeoJSONPoint | GeoJSONPolygon> {
   type: "Feature";
   id?: string;
   geometry: G;

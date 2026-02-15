@@ -5,9 +5,11 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { DEFAULT_MAP_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM } from "@trip-planner/map";
 import type { GeoJSONFeatureCollection, BBox, NormalizedSummary } from "@trip-planner/map";
-import { addPlacesSource, addRouteDaySources } from "./MapSources";
-import { addRouteLayers, addPlaceLayers, updateActiveDayPaint, updateSelectedAlt } from "./MapLayers";
+import { addPlacesSource, addRouteDaySources, addIsochroneSource, updateIsochroneSource } from "./MapSources";
+import { addRouteLayers, addPlaceLayers, addIsochroneLayers, updateActiveDayPaint, updateSelectedAlt } from "./MapLayers";
 import { setupInteractions, type PlaceClickData } from "./MapInteractions";
+
+import type { MapFocus } from "@trip-planner/core";
 
 interface MapProps {
   placesFC: GeoJSONFeatureCollection;
@@ -17,6 +19,10 @@ interface MapProps {
   activeDayIndex: number;
   selectedAltIndex: Record<number, number>;
   onPlaceClick: (data: PlaceClickData) => void;
+  isochroneFC: GeoJSONFeatureCollection | null;
+  onIsochroneRequest?: (coordinates: [number, number]) => void;
+  onIsochroneClear?: () => void;
+  mapFocus?: MapFocus | null;
 }
 
 export default function Map({
@@ -27,6 +33,10 @@ export default function Map({
   activeDayIndex,
   selectedAltIndex,
   onPlaceClick,
+  isochroneFC,
+  onIsochroneRequest,
+  onIsochroneClear,
+  mapFocus,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -46,6 +56,12 @@ export default function Map({
   const daySummariesRef = useRef(daySummaries);
   daySummariesRef.current = daySummaries;
 
+  const onIsochroneRequestRef = useRef(onIsochroneRequest);
+  onIsochroneRequestRef.current = onIsochroneRequest;
+
+  const onIsochroneClearRef = useRef(onIsochroneClear);
+  onIsochroneClearRef.current = onIsochroneClear;
+
   // Initialize map once
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
@@ -63,10 +79,12 @@ export default function Map({
 
     map.on("load", () => {
       // Add sources
+      addIsochroneSource(map);
       addRouteDaySources(map, daySegments);
       addPlacesSource(map, placesFC);
 
-      // Add layers (route layers first, then places on top)
+      // Add layers (isochrone first so routes draw on top)
+      addIsochroneLayers(map);
       addRouteLayers(map, daySegments.length, activeDayRef.current, selectedAltRef.current);
       addPlaceLayers(map);
 
@@ -75,7 +93,9 @@ export default function Map({
         map,
         daySegments.length,
         (data) => onPlaceClickRef.current(data),
-        daySummariesRef.current
+        daySummariesRef.current,
+        (coords) => onIsochroneRequestRef.current?.(coords),
+        () => onIsochroneClearRef.current?.()
       );
 
       // Fit to active day bbox
@@ -133,6 +153,36 @@ export default function Map({
 
     updateSelectedAlt(map, daySegments.length, selectedAltIndex);
   }, [selectedAltIndex, daySegments.length]);
+
+  // Update isochrone source when FC changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current) return;
+
+    updateIsochroneSource(map, isochroneFC);
+  }, [isochroneFC]);
+
+  // Fly to mapFocus target when overlay item is clicked
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current || !mapFocus) return;
+
+    if (mapFocus.bbox) {
+      map.fitBounds(
+        [
+          [mapFocus.bbox[0], mapFocus.bbox[1]],
+          [mapFocus.bbox[2], mapFocus.bbox[3]],
+        ],
+        { padding: 60, duration: 800 }
+      );
+    } else if (mapFocus.coordinates) {
+      map.flyTo({
+        center: mapFocus.coordinates,
+        zoom: 14,
+        duration: 800,
+      });
+    }
+  }, [mapFocus]);
 
   return <div id="map" ref={containerRef} />;
 }

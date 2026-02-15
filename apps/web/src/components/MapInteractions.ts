@@ -32,7 +32,9 @@ export function setupInteractions(
   map: mapboxgl.Map,
   dayCount: number,
   onPlaceClick: (data: PlaceClickData) => void,
-  daySummaries: NormalizedSummary[][] = []
+  daySummaries: NormalizedSummary[][] = [],
+  onIsochroneRequest?: (coordinates: [number, number]) => void,
+  onIsochroneClear?: () => void
 ): () => void {
   const cleanups: Array<() => void> = [];
 
@@ -57,7 +59,8 @@ export function setupInteractions(
   const onPointClick = (e: mapboxgl.MapMouseEvent) => {
     const features = map.queryRenderedFeatures(e.point, { layers: ["unclustered-point"] });
     if (!features.length) return;
-    const props = features[0].properties;
+    const feat = features[0];
+    const props = feat.properties;
     if (!props) return;
     onPlaceClick({
       id: props.id as string,
@@ -65,6 +68,11 @@ export function setupInteractions(
       category: props.category as string,
       dayIndex: props.dayIndex as number | undefined,
     });
+    // Fire isochrone request with place coordinates
+    if (onIsochroneRequest && feat.geometry.type === "Point") {
+      const coords = (feat.geometry as GeoJSON.Point).coordinates as [number, number];
+      onIsochroneRequest(coords);
+    }
   };
   map.on("click", "unclustered-point", onPointClick);
   cleanups.push(() => map.off("click", "unclustered-point", onPointClick));
@@ -205,9 +213,10 @@ export function setupInteractions(
     cleanups.push(() => map.off("click", layer, onSegmentClick));
   }
 
-  // --- Click on empty space: dismiss selection ---
+  // --- Click on empty space: dismiss selection + clear isochrone ---
   const onMapClick = () => {
     clearSelection();
+    onIsochroneClear?.();
   };
   map.on("click", onMapClick);
   cleanups.push(() => map.off("click", onMapClick));

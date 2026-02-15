@@ -1,4 +1,4 @@
-import type { DirectionsRequest } from "@trip-planner/core";
+import type { DirectionsRequest, IsochroneRequest } from "@trip-planner/core";
 import type { MapboxDirectionsResponse } from "@trip-planner/map";
 import { getEnv } from "../env";
 
@@ -66,4 +66,58 @@ export async function fetchDirections(
   }
 
   return body as MapboxDirectionsResponse;
+}
+
+export interface MapboxIsochroneResponse {
+  type: "FeatureCollection";
+  features: Array<{
+    type: "Feature";
+    geometry: { type: "Polygon"; coordinates: [number, number][][] };
+    properties: {
+      contour: number;
+      color: string;
+      opacity: number;
+      metric: string;
+      [key: string]: unknown;
+    };
+  }>;
+}
+
+export async function fetchIsochrone(
+  req: IsochroneRequest
+): Promise<MapboxIsochroneResponse> {
+  const { MAPBOX_SECRET_TOKEN } = getEnv();
+
+  const [lon, lat] = req.coordinates;
+
+  const params = new URLSearchParams({
+    contours_minutes: req.contours_minutes.join(","),
+    polygons: "true",
+    denoise: "0.3",
+    generalize: "10",
+    access_token: MAPBOX_SECRET_TOKEN,
+  });
+
+  const url = `https://api.mapbox.com/isochrone/v1/mapbox/${req.profile}/${lon},${lat}?${params}`;
+
+  const response = await fetch(url);
+  const body = await response.json();
+
+  if (!response.ok) {
+    throw new MapboxClientError(
+      body.message ?? "Mapbox Isochrone API error",
+      response.status,
+      body.code
+    );
+  }
+
+  if (!body.features || !Array.isArray(body.features)) {
+    throw new MapboxClientError(
+      "Invalid isochrone response: missing features",
+      422,
+      "InvalidResponse"
+    );
+  }
+
+  return body as MapboxIsochroneResponse;
 }

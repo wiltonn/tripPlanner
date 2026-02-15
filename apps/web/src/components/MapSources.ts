@@ -1,3 +1,4 @@
+import mapboxgl from "mapbox-gl";
 import type { Map as MapboxMap } from "mapbox-gl";
 import type { GeoJSONFeatureCollection } from "@trip-planner/map";
 
@@ -25,4 +26,27 @@ export function addRouteDaySources(
       promoteId: "id",
     });
   }
+}
+
+const EMPTY_FC: GeoJSON.FeatureCollection = {
+  type: "FeatureCollection",
+  features: [],
+};
+
+export function addIsochroneSource(map: MapboxMap): void {
+  map.addSource("isochrone", {
+    type: "geojson",
+    data: EMPTY_FC,
+  });
+}
+
+export function updateIsochroneSource(
+  map: MapboxMap,
+  fc: GeoJSONFeatureCollection | null
+): void {
+  const source = map.getSource("isochrone") as mapboxgl.GeoJSONSource | undefined;
+  if (!source) return;
+  source.setData(
+    fc ? (fc as unknown as GeoJSON.FeatureCollection) : EMPTY_FC
+  );
 }

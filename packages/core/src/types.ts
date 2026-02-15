@@ -9,6 +9,9 @@ import {
   DirectionsRequestSchema,
   DirectionsResponseSchema,
   RouteSummarySchema,
+  IsochroneRequestSchema,
+  IsochroneContourSchema,
+  IsochroneResponseSchema,
 } from "./schemas";
 
 export type Trip = z.infer<typeof TripSchema>;
@@ -20,3 +23,6 @@ export type RoutingProfile = z.infer<typeof RoutingProfileSchema>;
 export type DirectionsRequest = z.infer<typeof DirectionsRequestSchema>;
 export type DirectionsResponse = z.infer<typeof DirectionsResponseSchema>;
 export type RouteSummary = z.infer<typeof RouteSummarySchema>;
+export type IsochroneRequest = z.infer<typeof IsochroneRequestSchema>;
+export type IsochroneContour = z.infer<typeof IsochroneContourSchema>;
+export type IsochroneResponse = z.infer<typeof IsochroneResponseSchema>;

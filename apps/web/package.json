@@ -9,17 +9,19 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@trip-planner/core": "workspace:*",
+    "@trip-planner/map": "workspace:*",
+    "immer": "^11.1.4",
+    "mapbox-gl": "^3.9.0",
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "mapbox-gl": "^3.9.0",
-    "@trip-planner/core": "workspace:*",
-    "@trip-planner/map": "workspace:*"
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.7.0"
   }
 }

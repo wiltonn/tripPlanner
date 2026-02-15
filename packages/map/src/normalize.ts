@@ -2,6 +2,7 @@ import {
   type GeoJSONFeature,
   type GeoJSONFeatureCollection,
   type GeoJSONLineString,
+  type GeoJSONPolygon,
   type BBox,
   createFeature,
   createFeatureCollection,
@@ -211,5 +212,101 @@ export function normalizeDirections(
     ),
     bbox,
     summary: summaries,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Isochrone types
+// ---------------------------------------------------------------------------
+
+export interface MapboxIsochroneFeature {
+  type: "Feature";
+  geometry: { type: "Polygon"; coordinates: [number, number][][] };
+  properties: {
+    contour: number;
+    color: string;
+    opacity: number;
+    metric: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface MapboxIsochroneResponse {
+  type: "FeatureCollection";
+  features: MapboxIsochroneFeature[];
+}
+
+export interface IsochroneContourInfo {
+  minutes: number;
+  color: string;
+}
+
+export interface NormalizedIsochrone {
+  polygons: GeoJSONFeatureCollection;
+  center: [number, number];
+  contours: IsochroneContourInfo[];
+  bbox: BBox;
+}
+
+// ---------------------------------------------------------------------------
+// Isochrone Normalizer
+// ---------------------------------------------------------------------------
+
+export function normalizeIsochrone(
+  response: MapboxIsochroneResponse,
+  center: [number, number]
+): NormalizedIsochrone {
+  const features: GeoJSONFeature<GeoJSONPolygon>[] = [];
+  const contours: IsochroneContourInfo[] = [];
+  let bbox: BBox = [Infinity, Infinity, -Infinity, -Infinity];
+
+  const lon5 = center[0].toFixed(5);
+  const lat5 = center[1].toFixed(5);
+
+  for (const feat of response.features) {
+    if (!feat.geometry || feat.geometry.type !== "Polygon") continue;
+
+    const minutes = feat.properties.contour;
+    const color = feat.properties.color;
+    const id = `iso:${lon5},${lat5}:${minutes}`;
+
+    const polygon: GeoJSONPolygon = {
+      type: "Polygon",
+      coordinates: feat.geometry.coordinates,
+    };
+
+    features.push(
+      createFeature(
+        polygon,
+        {
+          id,
+          minutes,
+          color,
+          metric: feat.properties.metric ?? "time",
+        },
+        id
+      ) as GeoJSONFeature<GeoJSONPolygon>
+    );
+
+    contours.push({ minutes, color });
+
+    // Compute bbox from polygon exterior ring
+    for (const ring of feat.geometry.coordinates) {
+      for (const [lng, lat] of ring) {
+        if (lng < bbox[0]) bbox[0] = lng;
+        if (lat < bbox[1]) bbox[1] = lat;
+        if (lng > bbox[2]) bbox[2] = lng;
+        if (lat > bbox[3]) bbox[3] = lat;
+      }
+    }
+  }
+
+  return {
+    polygons: createFeatureCollection(
+      features as unknown as GeoJSONFeature[]
+    ),
+    center,
+    contours: contours.sort((a, b) => a.minutes - b.minutes),
+    bbox,
   };
 }

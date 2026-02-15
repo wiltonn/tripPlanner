@@ -1,3 +1,4 @@
+import mapboxgl from "mapbox-gl";
 import type { Map as MapboxMap, FilterSpecification } from "mapbox-gl";
 import { PLACE_MARKER_COLOR } from "@trip-planner/map";
 
@@ -173,6 +174,49 @@ export function addPlaceLayers(map: MapboxMap): void {
       "circle-stroke-color": "#fff",
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Isochrone layers
+// ---------------------------------------------------------------------------
+
+export function addIsochroneLayers(map: MapboxMap): void {
+  // Fill layer — opacity decreases with contour size
+  map.addLayer({
+    id: "isochrone-fill",
+    type: "fill",
+    source: "isochrone",
+    paint: {
+      "fill-color": ["get", "color"],
+      "fill-opacity": [
+        "interpolate",
+        ["linear"],
+        ["get", "minutes"],
+        15, 0.25,
+        30, 0.15,
+        60, 0.08,
+      ],
+    },
+  });
+
+  // Outline layer — dashed ring borders
+  map.addLayer({
+    id: "isochrone-outline",
+    type: "line",
+    source: "isochrone",
+    paint: {
+      "line-color": ["get", "color"],
+      "line-width": 1.5,
+      "line-opacity": 0.6,
+      "line-dasharray": [3, 2],
+    },
+  });
+}
+
+export function removeIsochroneData(map: MapboxMap): void {
+  const source = map.getSource("isochrone") as mapboxgl.GeoJSONSource | undefined;
+  if (!source) return;
+  source.setData({ type: "FeatureCollection", features: [] });
 }
 
 // ---------------------------------------------------------------------------

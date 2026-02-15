@@ -5,6 +5,9 @@ const EnvSchema = z.object({
     .string()
     .startsWith("sk.", "MAPBOX_SECRET_TOKEN must start with sk."),
   API_PORT: z.coerce.number().int().positive().default(4000),
+  DATABASE_URL: z
+    .string()
+    .startsWith("postgresql://", "DATABASE_URL must be a PostgreSQL connection string"),
 });
 
 type Env = z.infer<typeof EnvSchema>;

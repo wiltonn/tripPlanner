@@ -142,7 +142,7 @@ body {
 
 .route-alt-panel {
   position: absolute;
-  top: 58px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -264,4 +264,479 @@ body {
 
 .segment-tooltip-fastest {
   color: #16a34a;
+}
+
+/* --------------------------------------------------------
+   Accordion Panel — Right-side floating card
+   -------------------------------------------------------- */
+
+.accordion-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 360px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.06),
+    0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+.accordion-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.accordion-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.accordion-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+
+.accordion-section {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.accordion-section:last-child {
+  border-bottom: none;
+}
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.accordion-header:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.accordion-header.expanded {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.accordion-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.accordion-icon {
+  font-size: 18px;
+  line-height: 1;
+  width: 24px;
+  text-align: center;
+}
+
+.accordion-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: -0.01em;
+  transition: color 0.2s ease;
+}
+
+.accordion-header.expanded .accordion-label {
+  color: #1e40af;
+}
+
+.accordion-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+  transition: transform 0.2s ease;
+}
+
+.accordion-header:hover .accordion-dot {
+  transform: scale(1.2);
+}
+
+.accordion-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.accordion-chevron.expanded {
+  transform: rotate(180deg);
+  color: #3b82f6;
+}
+
+.accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.accordion-body.expanded {
+  grid-template-rows: 1fr;
+}
+
+.accordion-body-inner {
+  overflow: hidden;
+}
+
+.accordion-body-content {
+  padding: 0 18px 16px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.accordion-body-content::-webkit-scrollbar {
+  width: 3px;
+}
+
+.accordion-body-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.accordion-body-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+/* DayTimeline override inside accordion */
+.accordion-body .day-timeline {
+  position: static;
+  transform: none;
+  z-index: auto;
+  width: 100%;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(243, 244, 246, 0.8);
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------
+   Overlay Body + Sections
+   -------------------------------------------------------- */
+
+.overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.overlay-section {
+  margin-bottom: 20px;
+}
+
+.overlay-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 4px;
+}
+
+.overlay-section-meta {
+  font-size: 13px;
+  color: #888;
+}
+
+.overlay-section-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.overlay-empty-text {
+  font-size: 14px;
+  color: #888;
+  line-height: 1.5;
+}
+
+/* Open decisions */
+.overlay-decisions {
+  list-style: none;
+  padding: 0;
+}
+
+.overlay-decision-item {
+  font-size: 13px;
+  color: #666;
+  padding: 4px 0 4px 16px;
+  position: relative;
+}
+
+.overlay-decision-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+/* Day / item rows */
+.overlay-day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.overlay-day-row:hover {
+  background: #f0f7ff;
+  border-color: #93c5fd;
+}
+
+.overlay-day-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.overlay-day-meta {
+  font-size: 12px;
+  color: #888;
+}
+
+.overlay-summary-row {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  padding: 8px 0;
+  margin-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.overlay-warning {
+  font-size: 13px;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* --------------------------------------------------------
+   CTA Bar
+   -------------------------------------------------------- */
+
+.cta-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0 8px;
+  border-top: 1px solid #eee;
+  margin-top: 12px;
+}
+
+.cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+  width: 100%;
+}
+
+.cta-btn:hover {
+  background: #dbeafe;
+  border-color: #2563eb;
+}
+
+.cta-btn.cta-ai {
+  border-color: #8b5cf6;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.cta-btn.cta-ai:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+}
+
+.cta-label {
+  font-size: 14px;
+}
+
+.cta-ai-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: #8b5cf6;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------
+   Overlay Inline Forms
+   -------------------------------------------------------- */
+
+.overlay-inline-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.overlay-form-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.overlay-form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.overlay-form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #666;
+  flex: 1;
+}
+
+.overlay-form-input {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #333;
+  width: 100%;
+}
+
+.overlay-form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.overlay-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.overlay-form-save {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.overlay-form-save:hover {
+  background: #2563eb;
+}
+
+.overlay-form-cancel {
+  padding: 8px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.overlay-form-cancel:hover {
+  background: #f3f4f6;
+}
+
+/* --------------------------------------------------------
+   Budget Overlay
+   -------------------------------------------------------- */
+
+.budget-row {
+  margin-bottom: 12px;
+}
+
+.budget-row-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.budget-category {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+
+.budget-amounts {
+  font-size: 13px;
+  color: #666;
+}
+
+.budget-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }

@@ -1,4 +1,4 @@
-import type { DirectionsRequest } from "@trip-planner/core";
+import type { DirectionsRequest, IsochroneRequest } from "@trip-planner/core";
 
 export function buildDirectionsCacheKey(req: DirectionsRequest): string {
   const coords = req.coordinates
@@ -17,4 +17,10 @@ export function buildDirectionsCacheKey(req: DirectionsRequest): string {
     key += `|avoid:${avoidFlags.join(",")}`;
   }
   return key;
+}
+
+export function buildIsochroneCacheKey(req: IsochroneRequest): string {
+  const [lon, lat] = req.coordinates;
+  const sortedMinutes = [...req.contours_minutes].sort((a, b) => a - b).join(",");
+  return `iso|profile:${req.profile}|coord:${lon.toFixed(5)},${lat.toFixed(5)}|min:${sortedMinutes}`;
 }
