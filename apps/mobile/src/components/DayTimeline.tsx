@@ -1,17 +1,21 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { dayColor } from "../theme/colors";
+import OfflineStatusBadge from "./OfflineStatusBadge";
+import type { DayPackState } from "../hooks/useOfflinePacks";
 
 interface DayTimelineProps {
   dayCount: number;
   activeDayIndex: number;
   onDayChange: (index: number) => void;
+  packStates?: DayPackState[];
 }
 
 export default function DayTimeline({
   dayCount,
   activeDayIndex,
   onDayChange,
+  packStates,
 }: DayTimelineProps) {
   return (
     <View style={styles.container}>
@@ -23,6 +27,7 @@ export default function DayTimeline({
         {Array.from({ length: dayCount }, (_, i) => {
           const isActive = i === activeDayIndex;
           const color = dayColor(i);
+          const packState = packStates?.[i];
 
           return (
             <Pressable
@@ -33,9 +38,17 @@ export default function DayTimeline({
               ]}
               onPress={() => onDayChange(i)}
             >
-              <Text style={[styles.label, isActive && styles.activeLabel]}>
-                Day {i + 1}
-              </Text>
+              <View style={styles.pillContent}>
+                <Text style={[styles.label, isActive && styles.activeLabel]}>
+                  Day {i + 1}
+                </Text>
+                {packState && (
+                  <OfflineStatusBadge
+                    status={packState.status}
+                    progress={packState.progress}
+                  />
+                )}
+              </View>
             </Pressable>
           );
         })}
@@ -68,6 +81,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 3,
     elevation: 3,
+  },
+  pillContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   label: {
     fontSize: 14,
