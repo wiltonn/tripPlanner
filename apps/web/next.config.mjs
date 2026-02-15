@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@trip-planner/map"],
+  transpilePackages: ["@trip-planner/core", "@trip-planner/map"],
 };
 
 export default nextConfig;

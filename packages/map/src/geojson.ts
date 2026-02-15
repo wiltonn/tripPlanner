@@ -10,9 +10,12 @@ export interface GeoJSONPoint {
 
 export interface GeoJSONFeature<G = GeoJSONLineString | GeoJSONPoint> {
   type: "Feature";
+  id?: string;
   geometry: G;
   properties: Record<string, unknown>;
 }
+
+export type BBox = [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
 
 export interface GeoJSONFeatureCollection {
   type: "FeatureCollection";
@@ -31,9 +34,12 @@ export function createPoint(lng: number, lat: number): GeoJSONPoint {
 
 export function createFeature<G = GeoJSONLineString | GeoJSONPoint>(
   geometry: G,
-  properties: Record<string, unknown> = {}
+  properties: Record<string, unknown> = {},
+  id?: string
 ): GeoJSONFeature<G> {
-  return { type: "Feature", geometry, properties };
+  const feature: GeoJSONFeature<G> = { type: "Feature", geometry, properties };
+  if (id !== undefined) feature.id = id;
+  return feature;
 }
 
 export function createFeatureCollection(

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// ---------------------------------------------------------------------------
+// Domain Models
+// ---------------------------------------------------------------------------
+
 export const TripSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -36,6 +40,7 @@ export const PlaceSchema = z.object({
 export const RouteAlternativeSchema = z.object({
   id: z.string().uuid(),
   routeId: z.string().uuid(),
+  label: z.string().optional(),
   geometry: z.unknown(),
   distanceMeters: z.number().nonnegative(),
   durationSeconds: z.number().nonnegative(),
@@ -54,16 +59,39 @@ export const RouteSchema = z.object({
   updatedAt: z.coerce.date(),
 });
 
+// ---------------------------------------------------------------------------
+// API Contract: POST /routes/directions
+// ---------------------------------------------------------------------------
+
+export const RoutingProfileSchema = z.enum(["driving", "walking", "cycling"]);
+
 export const DirectionsRequestSchema = z.object({
-  origin: z.object({ lat: z.number(), lng: z.number() }),
-  destination: z.object({ lat: z.number(), lng: z.number() }),
+  profile: RoutingProfileSchema,
+  coordinates: z
+    .array(z.tuple([z.number(), z.number()]))
+    .min(2, "At least origin and destination required"),
+  alternatives: z.boolean(),
+  avoid: z
+    .object({
+      tolls: z.boolean().optional(),
+      ferries: z.boolean().optional(),
+      highways: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export const RouteSummarySchema = z.object({
+  totalDistance: z.number().nonnegative(),
+  totalDuration: z.number().nonnegative(),
+  legCount: z.number().int().nonnegative(),
+  stepCount: z.number().int().nonnegative(),
 });
 
 export const DirectionsResponseSchema = z.object({
-  geometry: z.object({
-    type: z.literal("LineString"),
-    coordinates: z.array(z.tuple([z.number(), z.number()])),
+  summary: z.array(RouteSummarySchema),
+  geojson: z.object({
+    routeLines: z.unknown(),
+    segments: z.unknown(),
+    bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
   }),
-  distanceMeters: z.number(),
-  durationSeconds: z.number(),
 });

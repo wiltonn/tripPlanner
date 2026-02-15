@@ -1,8 +1,9 @@
 import Fastify from "fastify";
+import { validateEnv } from "./env";
 import { healthRoutes } from "./routes/health";
 import { directionsRoutes } from "./routes/directions";
 
-const port = Number(process.env.API_PORT) || 4000;
+const env = validateEnv();
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -10,7 +11,7 @@ async function main() {
   app.register(healthRoutes);
   app.register(directionsRoutes);
 
-  await app.listen({ port, host: "0.0.0.0" });
+  await app.listen({ port: env.API_PORT, host: "0.0.0.0" });
 }
 
 main().catch((err) => {

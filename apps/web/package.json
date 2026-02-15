@@ -13,6 +13,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "mapbox-gl": "^3.9.0",
+    "@trip-planner/core": "workspace:*",
     "@trip-planner/map": "workspace:*"
   },
   "devDependencies": {
