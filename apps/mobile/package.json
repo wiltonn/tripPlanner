@@ -5,17 +5,28 @@
   "main": "App.tsx",
   "scripts": {
     "dev": "expo start",
-    "build": "echo 'Mobile build not configured'",
-    "lint": "tsc --noEmit"
+    "build": "eas build",
+    "build:dev": "eas build --profile development",
+    "lint": "tsc --noEmit",
+    "ios": "expo run:ios",
+    "android": "expo run:android"
   },
   "dependencies": {
+    "@gorhom/bottom-sheet": "^5.0.0",
+    "@rnmapbox/maps": "^10.1.0",
+    "@trip-planner/core": "workspace:*",
+    "@trip-planner/map": "workspace:*",
     "expo": "~52.0.0",
+    "expo-location": "~18.0.0",
     "react": "^18.3.0",
     "react-native": "0.76.0",
-    "@trip-planner/core": "workspace:*"
+    "react-native-gesture-handler": "~2.20.0",
+    "react-native-reanimated": "~3.16.0",
+    "react-native-safe-area-context": "~4.12.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/react": "^18.3.0"
+    "@types/geojson": "^7946.0.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.7.0"
   }
 }

@@ -1,29 +1,11 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import MapScreen from "./src/screens/MapScreen";
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Trip Planner</Text>
-      <Text style={styles.subtitle}>Mobile app coming soon</Text>
-    </View>
+    <SafeAreaProvider>
+      <MapScreen />
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-  },
-});
