@@ -1,33 +1,61 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { DEFAULT_MAP_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM } from "@trip-planner/map";
+import { useState, useCallback } from "react";
+import Map from "@/components/Map";
+import DayTimeline from "@/components/DayTimeline";
+import PlaceSidebar from "@/components/PlaceSidebar";
+import RouteAlternativesPanel from "@/components/RouteAlternativesPanel";
+import type { PlaceClickData } from "@/components/MapInteractions";
+import { placesFC, dayData, DAY_COUNT } from "./data/mock";
+
+const daySegments = dayData.map((d) => d.segments);
+const dayBBoxes = dayData.map((d) => d.bbox);
+const daySummaries = dayData.map((d) => d.summary);
 
 export default function MapPage() {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceClickData | null>(null);
+  const [selectedAltIndex, setSelectedAltIndex] = useState<Record<number, number>>({});
 
-  useEffect(() => {
-    if (map.current || !mapContainer.current) return;
+  const currentAlt = selectedAltIndex[activeDayIndex] ?? 0;
 
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: DEFAULT_MAP_STYLE,
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-    });
-
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-    return () => {
-      map.current?.remove();
-      map.current = null;
-    };
+  const handlePlaceClick = useCallback((data: PlaceClickData) => {
+    setSelectedPlace(data);
   }, []);
 
-  return <div id="map" ref={mapContainer} />;
+  const handleCloseSidebar = useCallback(() => {
+    setSelectedPlace(null);
+  }, []);
+
+  const handleAltChange = useCallback(
+    (altIndex: number) => {
+      setSelectedAltIndex((prev) => ({ ...prev, [activeDayIndex]: altIndex }));
+    },
+    [activeDayIndex]
+  );
+
+  return (
+    <div className="app-shell">
+      <Map
+        placesFC={placesFC}
+        daySegments={daySegments}
+        dayBBoxes={dayBBoxes}
+        daySummaries={daySummaries}
+        activeDayIndex={activeDayIndex}
+        selectedAltIndex={selectedAltIndex}
+        onPlaceClick={handlePlaceClick}
+      />
+      <DayTimeline
+        dayCount={DAY_COUNT}
+        activeDayIndex={activeDayIndex}
+        onDayChange={setActiveDayIndex}
+      />
+      <RouteAlternativesPanel
+        summaries={dayData[activeDayIndex].summary}
+        selectedAlt={currentAlt}
+        onAltChange={handleAltChange}
+      />
+      <PlaceSidebar place={selectedPlace} onClose={handleCloseSidebar} />
+    </div>
+  );
 }
