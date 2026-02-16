@@ -159,7 +159,7 @@ export default function TripNewPage(): React.JSX.Element {
         airport: intake.airport,
         trip_style: intake.tripStyle,
         budget: intake.budget,
-        status: "draft",
+        status: "generating",
         bases: [],
       })
       .select("id")

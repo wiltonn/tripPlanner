@@ -8,20 +8,15 @@ import PlaceSidebar from "@/components/PlaceSidebar";
 import RouteAlternativesPanel from "@/components/RouteAlternativesPanel";
 import AccordionPanel from "@/components/AccordionPanel";
 import type { PlaceClickData } from "@/components/MapInteractions";
-import { dayData, DAY_COUNT } from "../../data/mock";
-import { mockPlanContext } from "../../data/mock-context";
 import { usePlanStore } from "@/store/plan-store";
 import { createClient } from "@/lib/supabase";
+import { PlanContextSchema } from "@trip-planner/core";
 import {
   createPoint,
   createFeature,
   createFeatureCollection,
 } from "@trip-planner/map";
 import type { GeoJSONFeatureCollection } from "@trip-planner/map";
-
-const daySegments = dayData.map((d) => d.segments);
-const dayBBoxes = dayData.map((d) => d.bbox);
-const daySummaries = dayData.map((d) => d.summary);
 
 const ISOCHRONE_CONTOURS = [15, 30, 60];
 
@@ -32,8 +27,23 @@ export default function MapPage(): React.JSX.Element {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [planTitle, setPlanTitle] = useState<string>("");
   const [planLoaded, setPlanLoaded] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load plan + verify ownership
+  const activeDayIndex = usePlanStore((s) => s.activeDayIndex);
+  const selectedPlace = usePlanStore((s) => s.selectedPlace);
+  const setSelectedPlace = usePlanStore((s) => s.setSelectedPlace);
+  const selectedAltIndex = usePlanStore((s) => s.selectedAltIndex);
+  const setSelectedAltForDay = usePlanStore((s) => s.setSelectedAltForDay);
+  const isochroneFC = usePlanStore((s) => s.isochroneFC);
+  const setIsochroneFC = usePlanStore((s) => s.setIsochroneFC);
+  const routingProfile = usePlanStore((s) => s.routingProfile);
+  const mapFocus = usePlanStore((s) => s.mapFocus);
+  const loadContext = usePlanStore((s) => s.loadContext);
+  const context = usePlanStore((s) => s.context);
+  const setPendingActivityCoords = usePlanStore((s) => s.setPendingActivityCoords);
+
+  // Load plan + verify ownership, generate if needed
   useEffect(() => {
     const supabase = createClient();
 
@@ -61,29 +71,67 @@ export default function MapPage(): React.JSX.Element {
       }
 
       setPlanTitle(plan.title);
-      setPlanLoaded(true);
+
+      // If plan_context already exists, load it directly
+      if (plan.plan_context) {
+        const validated = PlanContextSchema.safeParse(plan.plan_context);
+        if (validated.success) {
+          loadContext(validated.data);
+          setPlanLoaded(true);
+          return;
+        }
+        // Invalid stored context — regenerate
+        console.warn("Stored plan_context failed validation, regenerating...");
+      }
+
+      // No plan_context — trigger generation
+      setGenerating(true);
+      try {
+        const res = await fetch("/api/chat/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            destination: plan.destination,
+            nights: plan.nights,
+            travelers: plan.travelers,
+            airport: plan.airport,
+            tripStyle: plan.trip_style,
+            budget: plan.budget,
+          }),
+        });
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.message || `Generation failed (${res.status})`);
+        }
+
+        const { planContext } = await res.json();
+        const validated = PlanContextSchema.safeParse(planContext);
+        if (!validated.success) {
+          throw new Error("Generated plan failed validation");
+        }
+
+        // Save to DB
+        await supabase
+          .from("trip_plans")
+          .update({ plan_context: planContext, status: "ready" })
+          .eq("id", planId);
+
+        loadContext(validated.data);
+        setPlanLoaded(true);
+      } catch (err) {
+        console.error("Plan generation error:", err);
+        setError(err instanceof Error ? err.message : "Failed to generate plan");
+      } finally {
+        setGenerating(false);
+      }
     }
 
     loadPlan();
-  }, [planId, router]);
+  }, [planId, router, loadContext]);
 
-  const activeDayIndex = usePlanStore((s) => s.activeDayIndex);
-  const selectedPlace = usePlanStore((s) => s.selectedPlace);
-  const setSelectedPlace = usePlanStore((s) => s.setSelectedPlace);
-  const selectedAltIndex = usePlanStore((s) => s.selectedAltIndex);
-  const setSelectedAltForDay = usePlanStore((s) => s.setSelectedAltForDay);
-  const isochroneFC = usePlanStore((s) => s.isochroneFC);
-  const setIsochroneFC = usePlanStore((s) => s.setIsochroneFC);
-  const routingProfile = usePlanStore((s) => s.routingProfile);
-  const mapFocus = usePlanStore((s) => s.mapFocus);
-  const loadContext = usePlanStore((s) => s.loadContext);
-  const context = usePlanStore((s) => s.context);
-  const setPendingActivityCoords = usePlanStore((s) => s.setPendingActivityCoords);
-
-  // Load mock plan context on mount
-  useEffect(() => {
-    loadContext(mockPlanContext);
-  }, [loadContext]);
+  // Derive dayCount from context dailySchedules
+  const dayCount = context.dailySchedules.length || 1;
 
   // Derive placesFC from context activities + bases
   const placesFC: GeoJSONFeatureCollection = useMemo(() => {
@@ -191,6 +239,74 @@ export default function MapPage(): React.JSX.Element {
     [activeDayIndex, setSelectedAltForDay]
   );
 
+  function handleRetry() {
+    setError(null);
+    setPlanLoaded(false);
+    // Re-trigger the effect by forcing a state change
+    window.location.reload();
+  }
+
+  // Generating overlay
+  if (generating) {
+    return (
+      <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a14" }}>
+        <div style={{ textAlign: "center" }}>
+          <div className="generating-spinner" />
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "15px", marginTop: "16px" }}>
+            Generating your itinerary...
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", marginTop: "8px" }}>
+            This may take a few seconds
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a14" }}>
+        <div style={{ textAlign: "center", maxWidth: "400px" }}>
+          <div style={{ color: "#f87171", fontSize: "15px", marginBottom: "16px" }}>
+            {error}
+          </div>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+            <button
+              onClick={handleRetry}
+              style={{
+                padding: "8px 20px",
+                borderRadius: "8px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.08)",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: "13px",
+              }}
+            >
+              Retry
+            </button>
+            <Link
+              href="/dashboard"
+              style={{
+                padding: "8px 20px",
+                borderRadius: "8px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "transparent",
+                color: "rgba(255,255,255,0.6)",
+                textDecoration: "none",
+                fontSize: "13px",
+              }}
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   if (!planLoaded) {
     return (
       <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a14" }}>
@@ -225,9 +341,9 @@ export default function MapPage(): React.JSX.Element {
       </div>
       <Map
         placesFC={placesFC}
-        daySegments={daySegments}
-        dayBBoxes={dayBBoxes}
-        daySummaries={daySummaries}
+        daySegments={[]}
+        dayBBoxes={[]}
+        daySummaries={[]}
         activeDayIndex={activeDayIndex}
         selectedAltIndex={selectedAltIndex}
         onPlaceClick={handlePlaceClick}
@@ -237,12 +353,14 @@ export default function MapPage(): React.JSX.Element {
         mapFocus={mapFocus}
         onMapClickCoords={handleMapClickCoords}
       />
-      <AccordionPanel dayCount={DAY_COUNT} />
-      <RouteAlternativesPanel
-        summaries={dayData[activeDayIndex].summary}
-        selectedAlt={currentAlt}
-        onAltChange={handleAltChange}
-      />
+      <AccordionPanel dayCount={dayCount} />
+      {context.dailySchedules.length > 0 && (
+        <RouteAlternativesPanel
+          summaries={[]}
+          selectedAlt={currentAlt}
+          onAltChange={handleAltChange}
+        />
+      )}
       <PlaceSidebar place={selectedPlace} onClose={handleCloseSidebar} />
     </div>
   );

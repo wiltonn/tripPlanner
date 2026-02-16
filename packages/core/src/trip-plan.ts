@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PlanContextSchema } from "./plan-context";
 
 /** DB row schema (snake_case, matches Supabase columns) */
 export const TripPlanSchema = z.object({
@@ -13,6 +14,7 @@ export const TripPlanSchema = z.object({
   budget: z.string(),
   status: z.string().default("draft"),
   bases: z.array(z.unknown()).default([]),
+  plan_context: PlanContextSchema.nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
