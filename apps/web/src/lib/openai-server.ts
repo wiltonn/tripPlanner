@@ -1,6 +1,14 @@
 import OpenAI from "openai";
-import { PlanContextSchema } from "@trip-planner/core";
+import { z } from "zod";
+import { zodResponseFormat } from "openai/helpers/zod";
 import type { PlanContext, TripIntake } from "@trip-planner/core";
+import {
+  TripSkeletonSchema,
+  BaseSchema,
+  ActivitySchema,
+  DayScheduleSchema,
+  BudgetCategorySchema,
+} from "@trip-planner/core";
 
 // ---------------------------------------------------------------------------
 // Error class (mirrors mapbox-server.ts pattern)
@@ -33,92 +41,23 @@ function getOpenAIClient(): OpenAI {
 }
 
 // ---------------------------------------------------------------------------
+// Generation-specific schema (omits driveLegs + finalization for LLM compat)
+// ---------------------------------------------------------------------------
+
+const PlanContextGenSchema = z.object({
+  skeleton: TripSkeletonSchema,
+  bases: z.array(BaseSchema),
+  activities: z.array(ActivitySchema),
+  dailySchedules: z.array(DayScheduleSchema),
+  budget: z.array(BudgetCategorySchema),
+});
+
+// ---------------------------------------------------------------------------
 // System prompt builder
 // ---------------------------------------------------------------------------
 
 function buildSystemPrompt(intake: TripIntake): string {
-  const now = new Date().toISOString();
-
-  return `You are a trip planning assistant. Generate a PlanContext JSON object for the trip described below.
-
-CRITICAL: You must output a single JSON object matching EXACTLY this structure. Every "tracked" value uses this wrapper:
-{"value": <val>, "provenance": "ai-proposed", "updatedAt": "${now}"}
-
-Here is a COMPLETE EXAMPLE for a 2-night trip with 2 activities per day:
-
-{
-  "skeleton": {
-    "name": {"value": "NYC Weekend", "provenance": "ai-proposed", "updatedAt": "${now}"},
-    "startDate": null,
-    "endDate": null,
-    "arrivalAirport": {"value": "JFK", "provenance": "ai-proposed", "updatedAt": "${now}"},
-    "departureAirport": {"value": "JFK", "provenance": "ai-proposed", "updatedAt": "${now}"},
-    "partySize": {"value": 2, "provenance": "ai-proposed", "updatedAt": "${now}"},
-    "partyDescription": {"value": "Couple", "provenance": "ai-proposed", "updatedAt": "${now}"}
-  },
-  "bases": [
-    {
-      "id": "base-1",
-      "name": {"value": "Hotel Name", "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "location": {"value": [-74.006, 40.7128], "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "nights": {"value": 2, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "checkIn": null,
-      "checkOut": null,
-      "booked": {"value": false, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "costPerNight": {"value": 200, "provenance": "ai-proposed", "updatedAt": "${now}"}
-    }
-  ],
-  "activities": [
-    {
-      "id": "act-1",
-      "name": {"value": "Central Park Walk", "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "location": {"value": [-73.9654, 40.7829], "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "dayIndex": {"value": 0, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "timeBlock": {"value": "morning", "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "priority": {"value": "must-do", "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "duration": {"value": 120, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "cost": {"value": 0, "provenance": "ai-proposed", "updatedAt": "${now}"}
-    }
-  ],
-  "dailySchedules": [
-    {
-      "dayIndex": 0,
-      "baseId": "base-1",
-      "morning": ["act-1"],
-      "afternoon": ["act-2"],
-      "evening": ["act-3"]
-    }
-  ],
-  "driveLegs": [],
-  "budget": [
-    {
-      "category": "Lodging",
-      "estimated": {"value": 400, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "actual": null
-    },
-    {
-      "category": "Activities",
-      "estimated": {"value": 150, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "actual": null
-    },
-    {
-      "category": "Food",
-      "estimated": {"value": 300, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "actual": null
-    },
-    {
-      "category": "Transport",
-      "estimated": {"value": 100, "provenance": "ai-proposed", "updatedAt": "${now}"},
-      "actual": null
-    }
-  ],
-  "finalization": {
-    "emergencyContact": null,
-    "packingList": [],
-    "offlineNotes": [],
-    "confirmations": []
-  }
-}
+  return `You are a trip planning assistant. Generate a trip plan for the destination described below.
 
 RULES:
 - Coordinates are [longitude, latitude] — longitude first!
@@ -128,11 +67,10 @@ RULES:
 - timeBlock must be one of: "morning", "afternoon", "evening", "flexible"
 - priority must be one of: "must-do", "nice-to-have", "if-time"
 - Generate one dailySchedule per day (dayIndex 0 to ${intake.nights - 1})
-- driveLegs MUST be an empty array []
 - duration is in minutes, cost is in USD
 - skeleton.startDate and skeleton.endDate should be null (user hasn't picked dates)
-- Every tracked field uses the exact wrapper format shown above
-- Output the JSON object directly — no wrapping key, no markdown
+- All provenance values must be "ai-proposed"
+- updatedAt must be a valid ISO 8601 timestamp
 
 TRIP DETAILS:
 - Destination: ${intake.destination}
@@ -153,7 +91,7 @@ export async function generatePlanContext(
   const client = getOpenAIClient();
   const systemPrompt = buildSystemPrompt(intake);
 
-  const completion = await client.chat.completions.create({
+  const completion = await client.beta.chat.completions.parse({
     model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
@@ -162,41 +100,35 @@ export async function generatePlanContext(
         content: `Generate a complete trip plan for ${intake.destination}, ${intake.nights} nights.`,
       },
     ],
-    response_format: { type: "json_object" },
+    response_format: zodResponseFormat(PlanContextGenSchema, "plan_context"),
     temperature: 0.7,
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) {
-    throw new OpenAIError("Empty response from OpenAI", 502, "EmptyResponse");
-  }
+  const message = completion.choices[0]?.message;
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw new OpenAIError("Invalid JSON from OpenAI", 502, "InvalidJSON");
-  }
-
-  // GPT sometimes wraps in a top-level key like { "planContext": { ... } }
-  const obj = parsed as Record<string, unknown>;
-  if (obj.planContext && typeof obj.planContext === "object") {
-    parsed = obj.planContext;
-  }
-
-  const result = PlanContextSchema.safeParse(parsed);
-  if (!result.success) {
-    const flat = result.error.flatten();
-    console.error("PlanContext validation failed:", JSON.stringify(flat, null, 2));
+  if (message?.refusal) {
     throw new OpenAIError(
-      "Generated plan failed validation",
+      `OpenAI refused: ${message.refusal}`,
       502,
-      "ValidationFailed",
-      flat
+      "Refusal"
     );
   }
 
-  return result.data;
+  const generated = message?.parsed;
+  if (!generated) {
+    throw new OpenAIError("Empty response from OpenAI", 502, "EmptyResponse");
+  }
+
+  return {
+    ...generated,
+    driveLegs: [],
+    finalization: {
+      emergencyContact: null,
+      packingList: [],
+      offlineNotes: [],
+      confirmations: [],
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
