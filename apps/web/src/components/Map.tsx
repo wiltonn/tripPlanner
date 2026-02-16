@@ -105,7 +105,7 @@ export default function Map({
         (coords) => onMapClickCoordsRef.current?.(coords)
       );
 
-      // Fit to active day bbox
+      // Fit to active day bbox, or derive bounds from places
       const bbox = dayBBoxes[activeDayRef.current];
       if (bbox) {
         map.fitBounds(
@@ -115,6 +115,21 @@ export default function Map({
           ],
           { padding: 60, duration: 0 }
         );
+      } else if (placesFC.features.length > 0) {
+        const coords = placesFC.features
+          .map((f) => (f.geometry as GeoJSON.Point).coordinates as [number, number])
+          .filter((c) => c[0] !== 0 && c[1] !== 0);
+        if (coords.length > 0) {
+          const lngs = coords.map((c) => c[0]);
+          const lats = coords.map((c) => c[1]);
+          map.fitBounds(
+            [
+              [Math.min(...lngs), Math.min(...lats)],
+              [Math.max(...lngs), Math.max(...lats)],
+            ],
+            { padding: 80, duration: 0, maxZoom: 14 }
+          );
+        }
       }
 
       readyRef.current = true;
