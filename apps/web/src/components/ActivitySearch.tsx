@@ -3,8 +3,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { SearchResult } from "@trip-planner/core";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-
 interface ActivitySearchProps {
   mapCenter?: [number, number];
   onSelect: (result: SearchResult) => void;
@@ -30,7 +28,7 @@ export default function ActivitySearch({ mapCenter, onSelect }: ActivitySearchPr
         if (mapCenter) {
           params.set("proximity", `${mapCenter[0]},${mapCenter[1]}`);
         }
-        const res = await fetch(`${API_BASE}/search/places?${params}`);
+        const res = await fetch(`/api/search/places?${params}`);
         if (!res.ok) return;
         const data = await res.json();
         setResults(data.results ?? []);

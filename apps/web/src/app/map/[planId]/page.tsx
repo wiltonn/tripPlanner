@@ -23,7 +23,6 @@ const daySegments = dayData.map((d) => d.segments);
 const dayBBoxes = dayData.map((d) => d.bbox);
 const daySummaries = dayData.map((d) => d.summary);
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const ISOCHRONE_CONTOURS = [15, 30, 60];
 
 export default function MapPage(): React.JSX.Element {
@@ -152,7 +151,7 @@ export default function MapPage(): React.JSX.Element {
   const handleIsochroneRequest = useCallback(
     async (coordinates: [number, number]) => {
       try {
-        const res = await fetch(`${API_BASE}/routes/isochrone`, {
+        const res = await fetch(`/api/routes/isochrone`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
