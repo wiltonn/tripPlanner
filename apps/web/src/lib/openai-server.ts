@@ -91,7 +91,7 @@ export async function generatePlanContext(
   const client = getOpenAIClient();
   const systemPrompt = buildSystemPrompt(intake);
 
-  const completion = await client.beta.chat.completions.parse({
+  const completion = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
@@ -104,23 +104,25 @@ export async function generatePlanContext(
     temperature: 0.7,
   });
 
-  const message = completion.choices[0]?.message;
-
-  if (message?.refusal) {
-    throw new OpenAIError(
-      `OpenAI refused: ${message.refusal}`,
-      502,
-      "Refusal"
-    );
-  }
-
-  const generated = message?.parsed;
-  if (!generated) {
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
     throw new OpenAIError("Empty response from OpenAI", 502, "EmptyResponse");
   }
 
+  const result = PlanContextGenSchema.safeParse(JSON.parse(content));
+  if (!result.success) {
+    const flat = result.error.flatten();
+    console.error("PlanContext validation failed:", JSON.stringify(flat, null, 2));
+    throw new OpenAIError(
+      "Generated plan failed validation",
+      502,
+      "ValidationFailed",
+      flat
+    );
+  }
+
   return {
-    ...generated,
+    ...result.data,
     driveLegs: [],
     finalization: {
       emergencyContact: null,
