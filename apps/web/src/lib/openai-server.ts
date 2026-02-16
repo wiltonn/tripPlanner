@@ -10,7 +10,8 @@ export class OpenAIError extends Error {
   constructor(
     message: string,
     public statusCode: number,
-    public code?: string
+    public code?: string,
+    public details?: unknown
   ) {
     super(message);
     this.name = "OpenAIError";
@@ -36,22 +37,102 @@ function getOpenAIClient(): OpenAI {
 // ---------------------------------------------------------------------------
 
 function buildSystemPrompt(intake: TripIntake): string {
-  return `You are a trip planning assistant. Given the user's trip details, generate a complete PlanContext JSON object.
+  const now = new Date().toISOString();
 
-REQUIREMENTS:
-- Every value field must be wrapped in a Tracked<T> object: { "value": <val>, "provenance": "ai-proposed", "updatedAt": "<ISO timestamp>" }
-- Use real, accurate [longitude, latitude] coordinates for the destination area (IMPORTANT: longitude first, latitude second)
-- Generate deterministic IDs: bases use "base-1", "base-2", etc. Activities use "act-1", "act-2", etc.
-- Generate 3-5 activities per day, distributed across timeBlocks (morning, afternoon, evening)
-- Each activity needs: id, name (Tracked<string>), location (Tracked<[lon, lat]>), dayIndex (Tracked<number> or null), timeBlock (Tracked<"morning"|"afternoon"|"evening"|"flexible"> or null), priority (Tracked<"must-do"|"nice-to-have"|"if-time">), duration (Tracked<number> in minutes or null), cost (Tracked<number> or null)
-- Generate dailySchedules referencing activity IDs, one per day (dayIndex 0 to nights-1)
-- Each dailySchedule: { dayIndex, baseId, morning: [actIds], afternoon: [actIds], evening: [actIds] }
-- Generate budget categories: Lodging, Activities, Food, Transport — each with estimated (Tracked<number>) and actual as null
-- driveLegs must be an empty array (computed later via routing API)
-- finalization: { emergencyContact: null, packingList: [], offlineNotes: [], confirmations: [] }
-- skeleton must include: name, startDate, endDate (as Tracked<string> or null), arrivalAirport, departureAirport, partySize, partyDescription
-- Base lodging: generate 1 base with realistic hotel name and coordinates for the destination
-- Ensure all coordinates are realistic for "${intake.destination}"
+  return `You are a trip planning assistant. Generate a PlanContext JSON object for the trip described below.
+
+CRITICAL: You must output a single JSON object matching EXACTLY this structure. Every "tracked" value uses this wrapper:
+{"value": <val>, "provenance": "ai-proposed", "updatedAt": "${now}"}
+
+Here is a COMPLETE EXAMPLE for a 2-night trip with 2 activities per day:
+
+{
+  "skeleton": {
+    "name": {"value": "NYC Weekend", "provenance": "ai-proposed", "updatedAt": "${now}"},
+    "startDate": null,
+    "endDate": null,
+    "arrivalAirport": {"value": "JFK", "provenance": "ai-proposed", "updatedAt": "${now}"},
+    "departureAirport": {"value": "JFK", "provenance": "ai-proposed", "updatedAt": "${now}"},
+    "partySize": {"value": 2, "provenance": "ai-proposed", "updatedAt": "${now}"},
+    "partyDescription": {"value": "Couple", "provenance": "ai-proposed", "updatedAt": "${now}"}
+  },
+  "bases": [
+    {
+      "id": "base-1",
+      "name": {"value": "Hotel Name", "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "location": {"value": [-74.006, 40.7128], "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "nights": {"value": 2, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "checkIn": null,
+      "checkOut": null,
+      "booked": {"value": false, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "costPerNight": {"value": 200, "provenance": "ai-proposed", "updatedAt": "${now}"}
+    }
+  ],
+  "activities": [
+    {
+      "id": "act-1",
+      "name": {"value": "Central Park Walk", "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "location": {"value": [-73.9654, 40.7829], "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "dayIndex": {"value": 0, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "timeBlock": {"value": "morning", "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "priority": {"value": "must-do", "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "duration": {"value": 120, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "cost": {"value": 0, "provenance": "ai-proposed", "updatedAt": "${now}"}
+    }
+  ],
+  "dailySchedules": [
+    {
+      "dayIndex": 0,
+      "baseId": "base-1",
+      "morning": ["act-1"],
+      "afternoon": ["act-2"],
+      "evening": ["act-3"]
+    }
+  ],
+  "driveLegs": [],
+  "budget": [
+    {
+      "category": "Lodging",
+      "estimated": {"value": 400, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "actual": null
+    },
+    {
+      "category": "Activities",
+      "estimated": {"value": 150, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "actual": null
+    },
+    {
+      "category": "Food",
+      "estimated": {"value": 300, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "actual": null
+    },
+    {
+      "category": "Transport",
+      "estimated": {"value": 100, "provenance": "ai-proposed", "updatedAt": "${now}"},
+      "actual": null
+    }
+  ],
+  "finalization": {
+    "emergencyContact": null,
+    "packingList": [],
+    "offlineNotes": [],
+    "confirmations": []
+  }
+}
+
+RULES:
+- Coordinates are [longitude, latitude] — longitude first!
+- Use real, accurate coordinates for ${intake.destination}
+- IDs: "base-1", "base-2" for bases; "act-1", "act-2", ... for activities
+- Generate 3-5 activities per day, spread across morning/afternoon/evening
+- timeBlock must be one of: "morning", "afternoon", "evening", "flexible"
+- priority must be one of: "must-do", "nice-to-have", "if-time"
+- Generate one dailySchedule per day (dayIndex 0 to ${intake.nights - 1})
+- driveLegs MUST be an empty array []
+- duration is in minutes, cost is in USD
+- skeleton.startDate and skeleton.endDate should be null (user hasn't picked dates)
+- Every tracked field uses the exact wrapper format shown above
+- Output the JSON object directly — no wrapping key, no markdown
 
 TRIP DETAILS:
 - Destination: ${intake.destination}
@@ -59,9 +140,7 @@ TRIP DETAILS:
 - Travelers: ${intake.travelers}
 - Airport: ${intake.airport}
 - Trip Style: ${intake.tripStyle}
-- Budget: ${intake.budget}
-
-Respond with ONLY valid JSON matching the PlanContext schema. No markdown, no explanation.`;
+- Budget: ${intake.budget}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +159,7 @@ export async function generatePlanContext(
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: `Generate a complete trip plan for ${intake.destination}, ${intake.nights} nights, ${intake.travelers}, ${intake.tripStyle} style, ${intake.budget} budget, flying into ${intake.airport}.`,
+        content: `Generate a complete trip plan for ${intake.destination}, ${intake.nights} nights.`,
       },
     ],
     response_format: { type: "json_object" },
@@ -99,13 +178,21 @@ export async function generatePlanContext(
     throw new OpenAIError("Invalid JSON from OpenAI", 502, "InvalidJSON");
   }
 
+  // GPT sometimes wraps in a top-level key like { "planContext": { ... } }
+  const obj = parsed as Record<string, unknown>;
+  if (obj.planContext && typeof obj.planContext === "object") {
+    parsed = obj.planContext;
+  }
+
   const result = PlanContextSchema.safeParse(parsed);
   if (!result.success) {
-    console.error("PlanContext validation failed:", result.error.flatten());
+    const flat = result.error.flatten();
+    console.error("PlanContext validation failed:", JSON.stringify(flat, null, 2));
     throw new OpenAIError(
       "Generated plan failed validation",
       502,
-      "ValidationFailed"
+      "ValidationFailed",
+      flat
     );
   }
 
@@ -119,7 +206,11 @@ export async function generatePlanContext(
 export function openaiErrorToResponse(err: unknown): Response {
   if (err instanceof OpenAIError) {
     return Response.json(
-      { error: err.code ?? "OpenAI error", message: err.message },
+      {
+        error: err.code ?? "OpenAI error",
+        message: err.message,
+        ...(err.details ? { details: err.details } : {}),
+      },
       { status: err.statusCode }
     );
   }
