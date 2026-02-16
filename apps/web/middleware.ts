@@ -29,6 +29,13 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // If an auth code arrives on "/" (Supabase email confirmation), forward to /auth/callback
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const callbackUrl = new URL("/auth/callback", request.url);
+    callbackUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(callbackUrl);
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -54,5 +61,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/login", "/dashboard", "/trips/:path*", "/map/:path*"],
+  matcher: ["/", "/app/:path*", "/login", "/dashboard", "/trips/:path*", "/map/:path*"],
 };
