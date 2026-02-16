@@ -31,16 +31,22 @@ If unsure, prefer:
 
 ```
 apps/
-  web/        # Next.js 14 + Mapbox GL JS 3
-  api/        # Fastify 5 (routing proxy, LRU cache)
-  mobile/     # React Native + Mapbox SDK (planned)
+  web/        # Next.js 15 + Mapbox GL JS 3 + Supabase Auth
+  api/        # Fastify 5 (routing proxy, LRU cache, auth)
+  mobile/     # React Native + Expo 52 + Mapbox SDK (offline-first)
 
 packages/
   core/       # Domain model + zod schemas + GeoJSON validation
   map/        # GeoJSON builders, normalizer, layer styles
+  db/         # Supabase client factory + generated DB types
 
-infra/
-  db/         # Prisma schema + migrations (planned)
+supabase/
+  migrations/ # SQL migrations (multi-tenant RLS schema)
+
+docs/
+  auth-setup.md         # Supabase auth configuration guide
+  db/schema-spec.md     # Database design with RLS matrix
+  db/migration-plan.md  # Schema evolution strategy
 ```
 
 ---
@@ -101,12 +107,44 @@ All validation must use zod.
 
 Mobile must:
 
-* Persist trip + route data locally
-* Cache offline tile regions
+* Persist trip + route data locally (SQLite via `expo-sqlite`)
+* Cache offline tile regions with size estimation
 * Render without network
 * Only refresh routing if explicitly requested
 
 Web offline is best-effort only.
+
+---
+
+## 5. Authentication Is Multi-Tenant
+
+All protected data is scoped to organizations via Supabase RLS.
+
+* Web uses cookie-based sessions (`@supabase/ssr`)
+* API validates Bearer tokens + `x-organization-id` header
+* Public routes: `/health`, `/routes/directions`, `/routes/isochrone`, `/search/places`
+* Protected routes: trips, day-plans, places (require auth + org header)
+* RLS helper functions: `is_org_member()`, `get_org_role()`
+
+---
+
+# Database (Supabase PostgreSQL + RLS)
+
+Multi-tenant schema with row-level security.
+
+Core tables:
+* `organizations`, `organization_members` (roles: owner, admin, member)
+* `trips`, `day_plans`, `places`, `routes`, `route_alternatives`
+
+Planning tables:
+* `trip_skeletons`, `bases`, `activities`, `drive_legs`
+* `day_schedules`, `budget_categories`, `finalizations`
+
+Enums: `org_role`, `provenance`, `time_block`, `activity_priority`
+
+Cascade delete chain: organizations → trips → day_plans → routes
+
+See `docs/db/schema-spec.md` for the full RLS policy matrix.
 
 ---
 
@@ -348,7 +386,9 @@ Must support:
 
 # API Contract
 
-## POST /routes/directions
+## Public Routes
+
+### POST /routes/directions
 
 Input:
 
@@ -378,6 +418,39 @@ Output:
 }
 ```
 
+### POST /routes/isochrone
+
+Isochrone contour generation via Mapbox Isochrone API.
+
+### GET /search/places
+
+Place search (geocoding).
+
+### GET /health
+
+Health check endpoint.
+
+## Protected Routes (Bearer token + x-organization-id)
+
+### Trips
+* `POST /trips` — create trip
+* `GET /trips` — list trips for org
+* `GET /trips/:id` — get trip
+* `PUT /trips/:id` — update trip
+* `DELETE /trips/:id` — delete trip
+
+### Day Plans
+* `POST /day-plans` — create day plan
+* `GET /day-plans` — list day plans
+* `PUT /day-plans/:id` — update day plan
+* `DELETE /day-plans/:id` — delete day plan
+
+### Places
+* `POST /places` — create place
+* `GET /places/:dayPlanId` — list places for day plan
+* `PUT /places/:id` — update place
+* `DELETE /places/:id` — delete place
+
 Never return raw Mapbox response.
 
 ---
@@ -393,11 +466,14 @@ Never return raw Mapbox response.
 
 # Tooling
 
-* Package manager: pnpm 9.x
+* Package manager: pnpm 9.15
 * Build orchestration: Turborepo
 * Tests: Vitest (`pnpm test` runs all via turbo)
 * Web: `pnpm -F @trip-planner/web dev` (port 3000)
 * API: `pnpm -F @trip-planner/api dev` (port 4000)
+* Mobile: `pnpm -F @trip-planner/mobile start` (Expo)
+* Guardrails: `pnpm guardrails` (lint + test for core, map, api)
+* DB types: `pnpm db:generate` (regenerate Supabase types)
 
 ---
 
@@ -430,11 +506,12 @@ Never return raw Mapbox response.
 3. ~~Web Map rendering~~ (done)
 4. ~~Route alternatives UI~~ (done)
 5. ~~Segment interaction~~ (done — cumulative metrics, click persistence, ETA deltas)
-6. Mobile map
-7. Offline packs
-8. Guardrail skills integration
-9. Isochrones
-10. Elevation profiles
+6. ~~Mobile map~~ (done — React Native + Expo, map screen, day timeline, route panel)
+7. ~~Offline packs~~ (done — tile estimation, SQLite persistence, download management)
+8. ~~Multi-tenant auth~~ (done — Supabase RLS, cookie sessions, Bearer tokens, CRUD routes)
+9. Guardrail skills integration
+10. Isochrones
+11. Elevation profiles
 
 ---
 

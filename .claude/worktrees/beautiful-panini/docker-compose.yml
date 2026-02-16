@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: tripplanner
+      POSTGRES_PASSWORD: tripplanner
+      POSTGRES_DB: tripplanner
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tripplanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://tripplanner:tripplanner@postgres:5432/tripplanner
+      MAPBOX_SECRET_TOKEN: ${MAPBOX_SECRET_TOKEN}
+      API_PORT: 4000
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+      - ./infra:/app/infra
+    command: pnpm -F @trip-planner/api dev
+
+volumes:
+  pgdata:

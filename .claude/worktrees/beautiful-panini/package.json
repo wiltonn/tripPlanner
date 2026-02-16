@@ -1,0 +1,28 @@
+{
+  "name": "trip-planner",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "db:generate": "pnpm -F @trip-planner/db db:generate",
+    "db:push": "pnpm -F @trip-planner/db db:push",
+    "db:migrate": "pnpm -F @trip-planner/db db:migrate",
+    "db:migrate:deploy": "pnpm -F @trip-planner/db db:migrate:deploy",
+    "guardrails": "turbo lint test --filter=@trip-planner/core --filter=@trip-planner/map --filter=@trip-planner/api"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19.0.0",
+      "@types/react-dom": "^19.0.0"
+    }
+  }
+}

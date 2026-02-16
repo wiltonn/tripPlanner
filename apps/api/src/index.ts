@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { validateEnv } from "./env";
 import authPlugin from "./plugins/auth";
 import { healthRoutes } from "./routes/health";
@@ -13,6 +14,13 @@ const env = validateEnv();
 
 async function main() {
   const app = Fastify({ logger: true });
+
+  await app.register(cors, {
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
+  });
 
   // Register auth plugin (decorates requests with supabase client)
   await app.register(authPlugin);

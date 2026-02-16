@@ -10,18 +10,19 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "fastify": "^5.2.0",
-    "fastify-plugin": "^5.0.0",
+    "@fastify/cors": "^11.2.0",
     "@supabase/supabase-js": "^2.49.0",
     "@trip-planner/core": "workspace:*",
     "@trip-planner/db": "workspace:*",
     "@trip-planner/map": "workspace:*",
+    "fastify": "^5.2.0",
+    "fastify-plugin": "^5.0.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "@types/node": "^22.0.0",
     "vitest": "^4.0.18"
   }
 }

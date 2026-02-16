@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Trip Planner",
+    "slug": "trip-planner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsImpl": "mapbox"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tripplanner.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#3b82f6"
+      },
+      "package": "com.tripplanner.mobile"
+    }
+  }
+}
