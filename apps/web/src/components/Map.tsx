@@ -5,8 +5,8 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { DEFAULT_MAP_STYLE, DEFAULT_CENTER, DEFAULT_ZOOM } from "@trip-planner/map";
 import type { GeoJSONFeatureCollection, BBox, NormalizedSummary } from "@trip-planner/map";
-import { addPlacesSource, addRouteDaySources, addIsochroneSource, updateIsochroneSource } from "./MapSources";
-import { addRouteLayers, addPlaceLayers, addIsochroneLayers, updateActiveDayPaint, updateSelectedAlt } from "./MapLayers";
+import { addPlacesSource, addRouteDaySources, addIsochroneSource, updateIsochroneSource, updatePlacesSource } from "./MapSources";
+import { addRouteLayers, addPlaceLayers, addIsochroneLayers, updateActiveDayPaint, updateSelectedAlt, generatePinImages, DAY_COLORS } from "./MapLayers";
 import { setupInteractions, type PlaceClickData } from "./MapInteractions";
 
 import type { MapFocus } from "@trip-planner/core";
@@ -23,6 +23,7 @@ interface MapProps {
   onIsochroneRequest?: (coordinates: [number, number]) => void;
   onIsochroneClear?: () => void;
   mapFocus?: MapFocus | null;
+  onMapClickCoords?: (coordinates: [number, number]) => void;
 }
 
 export default function Map({
@@ -37,6 +38,7 @@ export default function Map({
   onIsochroneRequest,
   onIsochroneClear,
   mapFocus,
+  onMapClickCoords,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -62,6 +64,9 @@ export default function Map({
   const onIsochroneClearRef = useRef(onIsochroneClear);
   onIsochroneClearRef.current = onIsochroneClear;
 
+  const onMapClickCoordsRef = useRef(onMapClickCoords);
+  onMapClickCoordsRef.current = onMapClickCoords;
+
   // Initialize map once
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
@@ -86,6 +91,7 @@ export default function Map({
       // Add layers (isochrone first so routes draw on top)
       addIsochroneLayers(map);
       addRouteLayers(map, daySegments.length, activeDayRef.current, selectedAltRef.current);
+      generatePinImages(map, DAY_COLORS.length);
       addPlaceLayers(map);
 
       // Setup interactions
@@ -95,7 +101,8 @@ export default function Map({
         (data) => onPlaceClickRef.current(data),
         daySummariesRef.current,
         (coords) => onIsochroneRequestRef.current?.(coords),
-        () => onIsochroneClearRef.current?.()
+        () => onIsochroneClearRef.current?.(),
+        (coords) => onMapClickCoordsRef.current?.(coords)
       );
 
       // Fit to active day bbox
@@ -161,6 +168,14 @@ export default function Map({
 
     updateIsochroneSource(map, isochroneFC);
   }, [isochroneFC]);
+
+  // Update places source when activities change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current) return;
+
+    updatePlacesSource(map, placesFC);
+  }, [placesFC]);
 
   // Fly to mapFocus target when overlay item is clicked
   useEffect(() => {

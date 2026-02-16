@@ -1,13 +1,29 @@
-import { PrismaClient } from "@prisma/client";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+/**
+ * Server-side: per-request client with user's JWT (RLS enforced).
+ * Use this in API route handlers where the user's access token is available.
+ */
+export function createServerClient(
+  accessToken: string
+): SupabaseClient<Database> {
+  return createClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    }
+  );
 }
 
-export { PrismaClient };
+/**
+ * Admin client (bypasses RLS). Use only for system operations
+ * like creating initial org memberships, migrations, etc.
+ */
+export const supabaseAdmin = createClient<Database>(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);

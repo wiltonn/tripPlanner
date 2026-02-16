@@ -5,19 +5,15 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "build": "prisma generate",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "lint": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "db:gen-types": "supabase gen types typescript --local > src/database.types.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.3.0"
+    "@supabase/supabase-js": "^2.49.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "prisma": "^6.3.0",
     "typescript": "^5.7.0"
   }
 }

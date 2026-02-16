@@ -50,3 +50,12 @@ export function updateIsochroneSource(
     fc ? (fc as unknown as GeoJSON.FeatureCollection) : EMPTY_FC
   );
 }
+
+export function updatePlacesSource(
+  map: MapboxMap,
+  placesFC: GeoJSONFeatureCollection
+): void {
+  const source = map.getSource("places") as mapboxgl.GeoJSONSource | undefined;
+  if (!source) return;
+  source.setData(placesFC as unknown as GeoJSON.FeatureCollection);
+}

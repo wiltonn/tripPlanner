@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from "fastify";
-import { prisma } from "@trip-planner/db";
 import { CreateDayPlanSchema, UpdateDayPlanSchema } from "@trip-planner/core";
 
 export const dayPlanRoutes: FastifyPluginAsync = async (app) => {
@@ -15,31 +14,41 @@ export const dayPlanRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      try {
-        const dayPlan = await prisma.dayPlan.create({
-          data: {
-            ...parsed.data,
-            tripId: request.params.tripId,
-          },
-        });
-        return reply.status(201).send(dayPlan);
-      } catch {
-        return reply.status(404).send({ error: "Trip not found" });
+      const { data, error } = await request.supabase
+        .from("day_plans")
+        .insert({
+          organization_id: request.organizationId,
+          trip_id: request.params.tripId,
+          date: parsed.data.date.toISOString().split("T")[0],
+          day_number: parsed.data.dayNumber,
+          notes: parsed.data.notes ?? null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(400).send({ error: error.message });
       }
+
+      return reply.status(201).send(data);
     },
   );
 
   // List day plans for trip
   app.get<{ Params: { tripId: string } }>(
     "/trips/:tripId/days",
-    async (request) => {
-      return prisma.dayPlan.findMany({
-        where: { tripId: request.params.tripId },
-        orderBy: { dayNumber: "asc" },
-        include: {
-          places: { orderBy: { sortOrder: "asc" } },
-        },
-      });
+    async (request, reply) => {
+      const { data, error } = await request.supabase
+        .from("day_plans")
+        .select("*, places(*)")
+        .eq("trip_id", request.params.tripId)
+        .order("day_number", { ascending: true });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return data;
     },
   );
 
@@ -53,27 +62,41 @@ export const dayPlanRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    try {
-      const dayPlan = await prisma.dayPlan.update({
-        where: { id: request.params.id },
-        data: parsed.data,
-      });
-      return dayPlan;
-    } catch {
+    const updateData: Record<string, unknown> = {};
+    if (parsed.data.date !== undefined)
+      updateData.date = parsed.data.date.toISOString().split("T")[0];
+    if (parsed.data.dayNumber !== undefined)
+      updateData.day_number = parsed.data.dayNumber;
+    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+
+    const { data, error } = await request.supabase
+      .from("day_plans")
+      .update(updateData)
+      .eq("id", request.params.id)
+      .select()
+      .single();
+
+    if (error || !data) {
       return reply.status(404).send({ error: "Day plan not found" });
     }
+
+    return data;
   });
 
   // Delete day plan
   app.delete<{ Params: { id: string } }>(
     "/days/:id",
     async (request, reply) => {
-      try {
-        await prisma.dayPlan.delete({ where: { id: request.params.id } });
-        return reply.status(204).send();
-      } catch {
+      const { error } = await request.supabase
+        .from("day_plans")
+        .delete()
+        .eq("id", request.params.id);
+
+      if (error) {
         return reply.status(404).send({ error: "Day plan not found" });
       }
+
+      return reply.status(204).send();
     },
   );
 };

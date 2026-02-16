@@ -16,25 +16,27 @@ describe("TripSchema", () => {
   it("parses a valid trip", () => {
     const result = TripSchema.parse({
       id: uuid,
+      organization_id: uuid2,
       name: "Pacific Coast Trip",
-      startDate: now,
-      endDate: now,
-      createdAt: now,
-      updatedAt: now,
+      start_date: now,
+      end_date: now,
+      created_at: now,
+      updated_at: now,
     });
     expect(result.name).toBe("Pacific Coast Trip");
-    expect(result.startDate).toBeInstanceOf(Date);
+    expect(result.start_date).toBe(now);
   });
 
   it("rejects empty name", () => {
     expect(() =>
       TripSchema.parse({
         id: uuid,
+        organization_id: uuid2,
         name: "",
-        startDate: now,
-        endDate: now,
-        createdAt: now,
-        updatedAt: now,
+        start_date: now,
+        end_date: now,
+        created_at: now,
+        updated_at: now,
       })
     ).toThrow();
   });
@@ -43,11 +45,12 @@ describe("TripSchema", () => {
     expect(() =>
       TripSchema.parse({
         id: "not-a-uuid",
+        organization_id: uuid2,
         name: "Trip",
-        startDate: now,
-        endDate: now,
-        createdAt: now,
-        updatedAt: now,
+        start_date: now,
+        end_date: now,
+        created_at: now,
+        updated_at: now,
       })
     ).toThrow();
   });
@@ -57,24 +60,26 @@ describe("DayPlanSchema", () => {
   it("parses a valid day plan", () => {
     const result = DayPlanSchema.parse({
       id: uuid,
-      tripId: uuid2,
+      organization_id: uuid2,
+      trip_id: uuid2,
       date: now,
-      dayNumber: 1,
-      createdAt: now,
-      updatedAt: now,
+      day_number: 1,
+      created_at: now,
+      updated_at: now,
     });
-    expect(result.dayNumber).toBe(1);
+    expect(result.day_number).toBe(1);
   });
 
   it("rejects non-positive dayNumber", () => {
     expect(() =>
       DayPlanSchema.parse({
         id: uuid,
-        tripId: uuid2,
+        organization_id: uuid2,
+        trip_id: uuid2,
         date: now,
-        dayNumber: 0,
-        createdAt: now,
-        updatedAt: now,
+        day_number: 0,
+        created_at: now,
+        updated_at: now,
       })
     ).toThrow();
   });
@@ -84,14 +89,15 @@ describe("PlaceSchema", () => {
   it("parses a valid place", () => {
     const result = PlaceSchema.parse({
       id: uuid,
-      dayPlanId: uuid2,
+      organization_id: uuid2,
+      day_plan_id: uuid2,
       name: "Golden Gate Bridge",
       lat: 37.8199,
       lng: -122.4783,
       category: "landmark",
-      sortOrder: 0,
-      createdAt: now,
-      updatedAt: now,
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
     });
     expect(result.lat).toBe(37.8199);
     expect(result.lng).toBe(-122.4783);
@@ -101,13 +107,14 @@ describe("PlaceSchema", () => {
     expect(() =>
       PlaceSchema.parse({
         id: uuid,
-        dayPlanId: uuid2,
+        organization_id: uuid2,
+        day_plan_id: uuid2,
         name: "Invalid",
         lat: 91,
         lng: 0,
-        sortOrder: 0,
-        createdAt: now,
-        updatedAt: now,
+        sort_order: 0,
+        created_at: now,
+        updated_at: now,
       })
     ).toThrow();
   });
@@ -116,13 +123,14 @@ describe("PlaceSchema", () => {
     expect(() =>
       PlaceSchema.parse({
         id: uuid,
-        dayPlanId: uuid2,
+        organization_id: uuid2,
+        day_plan_id: uuid2,
         name: "Invalid",
         lat: 0,
         lng: 181,
-        sortOrder: 0,
-        createdAt: now,
-        updatedAt: now,
+        sort_order: 0,
+        created_at: now,
+        updated_at: now,
       })
     ).toThrow();
   });
@@ -132,13 +140,14 @@ describe("RouteSchema", () => {
   it("parses a valid route", () => {
     const result = RouteSchema.parse({
       id: uuid,
-      dayPlanId: uuid2,
-      originPlaceId: uuid,
-      destPlaceId: uuid2,
-      createdAt: now,
-      updatedAt: now,
+      organization_id: uuid2,
+      day_plan_id: uuid2,
+      origin_place_id: uuid,
+      dest_place_id: uuid2,
+      created_at: now,
+      updated_at: now,
     });
-    expect(result.selectedAlternativeId).toBeUndefined();
+    expect(result.selected_alternative_id).toBeUndefined();
   });
 });
 
@@ -146,26 +155,28 @@ describe("RouteAlternativeSchema", () => {
   it("parses a valid alternative", () => {
     const result = RouteAlternativeSchema.parse({
       id: uuid,
-      routeId: uuid2,
-      distanceMeters: 15000,
-      durationSeconds: 900,
+      organization_id: uuid2,
+      route_id: uuid2,
+      distance_meters: 15000,
+      duration_seconds: 900,
       provider: "mapbox",
-      createdAt: now,
-      updatedAt: now,
+      created_at: now,
+      updated_at: now,
     });
-    expect(result.distanceMeters).toBe(15000);
+    expect(result.distance_meters).toBe(15000);
   });
 
   it("rejects negative distance", () => {
     expect(() =>
       RouteAlternativeSchema.parse({
         id: uuid,
-        routeId: uuid2,
-        distanceMeters: -1,
-        durationSeconds: 900,
+        organization_id: uuid2,
+        route_id: uuid2,
+        distance_meters: -1,
+        duration_seconds: 900,
         provider: "mapbox",
-        createdAt: now,
-        updatedAt: now,
+        created_at: now,
+        updated_at: now,
       })
     ).toThrow();
   });

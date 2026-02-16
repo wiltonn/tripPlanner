@@ -34,7 +34,8 @@ export function setupInteractions(
   onPlaceClick: (data: PlaceClickData) => void,
   daySummaries: NormalizedSummary[][] = [],
   onIsochroneRequest?: (coordinates: [number, number]) => void,
-  onIsochroneClear?: () => void
+  onIsochroneClear?: () => void,
+  onMapClickCoords?: (coordinates: [number, number]) => void
 ): () => void {
   const cleanups: Array<() => void> = [];
 
@@ -213,10 +214,17 @@ export function setupInteractions(
     cleanups.push(() => map.off("click", layer, onSegmentClick));
   }
 
-  // --- Click on empty space: dismiss selection + clear isochrone ---
-  const onMapClick = () => {
+  // --- Click on empty space: dismiss selection + clear isochrone + emit coords ---
+  const onMapClick = (e: mapboxgl.MapMouseEvent) => {
     clearSelection();
     onIsochroneClear?.();
+    // If no feature was hit, emit coordinates for "add activity" mode
+    const features = map.queryRenderedFeatures(e.point, {
+      layers: [...segmentBaseLayers, "clusters", "unclustered-point"],
+    });
+    if (features.length === 0 && onMapClickCoords) {
+      onMapClickCoords([e.lngLat.lng, e.lngLat.lat]);
+    }
   };
   map.on("click", onMapClick);
   cleanups.push(() => map.off("click", onMapClick));

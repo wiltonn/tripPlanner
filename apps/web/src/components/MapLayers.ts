@@ -1,8 +1,8 @@
 import mapboxgl from "mapbox-gl";
 import type { Map as MapboxMap, FilterSpecification } from "mapbox-gl";
-import { PLACE_MARKER_COLOR } from "@trip-planner/map";
 
-const DAY_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
+export const DAY_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
+const UNASSIGNED_COLOR = "#9ca3af";
 
 function dayColor(dayIndex: number): string {
   return DAY_COLORS[dayIndex % DAY_COLORS.length];
@@ -110,6 +110,71 @@ export function addRouteLayers(
 }
 
 // ---------------------------------------------------------------------------
+// Numbered pin image generation
+// ---------------------------------------------------------------------------
+
+const PIN_SIZE = 36;
+const MAX_PINS = 20;
+
+interface PinImageData {
+  width: number;
+  height: number;
+  data: Uint8Array;
+}
+
+function renderPinImage(
+  label: string,
+  fillColor: string
+): PinImageData {
+  const size = PIN_SIZE;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 2;
+
+  // White border ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+
+  // Colored fill
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+
+  // Label text
+  ctx.fillStyle = "#fff";
+  ctx.font = `bold ${label.length > 1 ? 12 : 14}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, cx, cy + 1);
+
+  const imgData = ctx.getImageData(0, 0, size, size);
+  return { width: size, height: size, data: new Uint8Array(imgData.data.buffer) };
+}
+
+export function generatePinImages(map: MapboxMap, dayCount: number): void {
+  for (let d = 0; d < dayCount; d++) {
+    const color = dayColor(d);
+    for (let n = 1; n <= MAX_PINS; n++) {
+      const id = `pin-day-${d}-${n}`;
+      if (map.hasImage(id)) continue;
+      map.addImage(id, renderPinImage(String(n), color));
+    }
+  }
+  // Unassigned pin with "?"
+  if (!map.hasImage("pin-unassigned")) {
+    map.addImage("pin-unassigned", renderPinImage("?", UNASSIGNED_COLOR));
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Place layers (clustered)
 // ---------------------------------------------------------------------------
 
@@ -151,27 +216,33 @@ export function addPlaceLayers(map: MapboxMap): void {
     },
   });
 
-  // Unclustered place points
+  // Unclustered place pins — symbol layer with numbered icons
   map.addLayer({
     id: "unclustered-point",
-    type: "circle",
+    type: "symbol",
     source: "places",
     filter: ["!", ["has", "point_count"]],
+    layout: {
+      "icon-image": [
+        "case",
+        ["==", ["get", "dayIndex"], -1],
+        "pin-unassigned",
+        ["concat", "pin-day-", ["to-string", ["get", "dayIndex"]], "-", ["to-string", ["get", "sortOrder"]]],
+      ] as unknown as string,
+      "icon-size": 1,
+      "icon-allow-overlap": true,
+      "icon-anchor": "center",
+      "text-field": ["get", "activityName"],
+      "text-size": 11,
+      "text-offset": [0, 1.5],
+      "text-anchor": "top",
+      "text-optional": true,
+      "text-max-width": 10,
+    },
     paint: {
-      "circle-color": PLACE_MARKER_COLOR,
-      "circle-radius": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        10,
-        7,
-      ],
-      "circle-stroke-width": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        3,
-        2,
-      ],
-      "circle-stroke-color": "#fff",
+      "text-color": "#333",
+      "text-halo-color": "#fff",
+      "text-halo-width": 1.5,
     },
   });
 }

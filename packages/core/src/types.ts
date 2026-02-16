@@ -12,6 +12,9 @@ import {
   IsochroneRequestSchema,
   IsochroneContourSchema,
   IsochroneResponseSchema,
+  SearchRequestSchema,
+  SearchResultSchema,
+  SearchResponseSchema,
 } from "./schemas";
 
 export type Trip = z.infer<typeof TripSchema>;
@@ -26,3 +29,6 @@ export type RouteSummary = z.infer<typeof RouteSummarySchema>;
 export type IsochroneRequest = z.infer<typeof IsochroneRequestSchema>;
 export type IsochroneContour = z.infer<typeof IsochroneContourSchema>;
 export type IsochroneResponse = z.infer<typeof IsochroneResponseSchema>;
+export type SearchRequest = z.infer<typeof SearchRequestSchema>;
+export type SearchResult = z.infer<typeof SearchResultSchema>;
+export type SearchResponse = z.infer<typeof SearchResponseSchema>;

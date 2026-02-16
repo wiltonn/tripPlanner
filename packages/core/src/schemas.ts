@@ -1,62 +1,67 @@
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
-// Domain Models
+// Domain Models (snake_case to match Supabase columns)
 // ---------------------------------------------------------------------------
 
 export const TripSchema = z.object({
   id: z.string().uuid(),
+  organization_id: z.string().uuid(),
   name: z.string().min(1),
-  description: z.string().optional(),
-  startDate: z.coerce.date(),
-  endDate: z.coerce.date(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  description: z.string().nullable().optional(),
+  start_date: z.string(),
+  end_date: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 export const DayPlanSchema = z.object({
   id: z.string().uuid(),
-  tripId: z.string().uuid(),
-  date: z.coerce.date(),
-  dayNumber: z.number().int().positive(),
-  notes: z.string().optional(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  organization_id: z.string().uuid(),
+  trip_id: z.string().uuid(),
+  date: z.string(),
+  day_number: z.number().int().positive(),
+  notes: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 export const PlaceSchema = z.object({
   id: z.string().uuid(),
-  dayPlanId: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  day_plan_id: z.string().uuid(),
   name: z.string().min(1),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  address: z.string().optional(),
-  category: z.string().optional(),
-  sortOrder: z.number().int().nonnegative(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  address: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  sort_order: z.number().int().nonnegative(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 export const RouteAlternativeSchema = z.object({
   id: z.string().uuid(),
-  routeId: z.string().uuid(),
-  label: z.string().optional(),
+  organization_id: z.string().uuid(),
+  route_id: z.string().uuid(),
+  label: z.string().nullable().optional(),
   geometry: z.unknown(),
-  distanceMeters: z.number().nonnegative(),
-  durationSeconds: z.number().nonnegative(),
+  distance_meters: z.number().nonnegative(),
+  duration_seconds: z.number().nonnegative(),
   provider: z.string(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 export const RouteSchema = z.object({
   id: z.string().uuid(),
-  dayPlanId: z.string().uuid(),
-  originPlaceId: z.string().uuid(),
-  destPlaceId: z.string().uuid(),
-  selectedAlternativeId: z.string().uuid().optional(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  organization_id: z.string().uuid(),
+  day_plan_id: z.string().uuid(),
+  origin_place_id: z.string().uuid(),
+  dest_place_id: z.string().uuid(),
+  selected_alternative_id: z.string().uuid().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 // ---------------------------------------------------------------------------
@@ -151,4 +156,30 @@ export const IsochroneResponseSchema = z.object({
   contours: z.array(IsochroneContourSchema),
   geojson: z.unknown(), // FeatureCollection of Polygons
   center: z.tuple([z.number(), z.number()]),
+});
+
+// ---------------------------------------------------------------------------
+// API Contract: GET /search/places
+// ---------------------------------------------------------------------------
+
+export const SearchRequestSchema = z.object({
+  q: z.string().min(1),
+  proximity: z
+    .string()
+    .regex(/^-?\d+\.?\d*,-?\d+\.?\d*$/, "Must be lon,lat")
+    .optional(),
+  limit: z.coerce.number().int().min(1).max(10).default(5),
+});
+
+export const SearchResultSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  address: z.string(),
+  category: z.string(),
+  coordinates: z.tuple([z.number(), z.number()]),
+  context: z.string(),
+});
+
+export const SearchResponseSchema = z.object({
+  results: z.array(SearchResultSchema),
 });

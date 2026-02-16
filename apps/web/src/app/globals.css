@@ -740,3 +740,138 @@ body {
   border-radius: 3px;
   transition: width 0.3s ease;
 }
+
+/* --------------------------------------------------------
+   Activity Search
+   -------------------------------------------------------- */
+
+.activity-search {
+  position: relative;
+}
+
+.activity-search-input {
+  width: 100%;
+}
+
+.activity-search-loading {
+  font-size: 12px;
+  color: #888;
+  padding: 4px 0;
+}
+
+.activity-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.activity-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.activity-search-result:hover {
+  background: #f0f7ff;
+}
+
+.activity-search-result:last-child {
+  border-bottom: none;
+}
+
+.activity-search-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.activity-search-detail {
+  font-size: 12px;
+  color: #888;
+}
+
+/* --------------------------------------------------------
+   Activity Row in Overlay
+   -------------------------------------------------------- */
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.activity-row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px;
+  font-family: inherit;
+}
+
+.activity-day-select {
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+  color: #555;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.activity-day-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.activity-remove-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #aaa;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.activity-remove-btn:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.activity-form-coords {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}

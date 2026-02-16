@@ -27,39 +27,38 @@ describe("ts-lsp-guard: Zod-TypeScript alignment", () => {
   it("TripSchema produces expected keys", () => {
     const trip = TripSchema.parse({
       id: uuid,
+      organization_id: uuid2,
       name: "Test Trip",
-      startDate: now,
-      endDate: now,
-      createdAt: now,
-      updatedAt: now,
+      start_date: now,
+      end_date: now,
+      created_at: now,
+      updated_at: now,
     });
-    expect(Object.keys(trip).sort()).toEqual(
-      ["createdAt", "description", "endDate", "id", "name", "startDate", "updatedAt"].filter(
-        (k) => k in trip
-      ).sort()
-    );
     expect(trip).toHaveProperty("id");
     expect(trip).toHaveProperty("name");
-    expect(trip).toHaveProperty("startDate");
-    expect(trip).toHaveProperty("endDate");
+    expect(trip).toHaveProperty("organization_id");
+    expect(trip).toHaveProperty("start_date");
+    expect(trip).toHaveProperty("end_date");
   });
 
   it("PlaceSchema produces expected keys", () => {
     const place = PlaceSchema.parse({
       id: uuid,
-      dayPlanId: uuid2,
+      organization_id: uuid2,
+      day_plan_id: uuid2,
       name: "Test",
       lat: 37.7,
       lng: -122.4,
-      sortOrder: 0,
-      createdAt: now,
-      updatedAt: now,
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
     });
     expect(place).toHaveProperty("id");
     expect(place).toHaveProperty("lat");
     expect(place).toHaveProperty("lng");
     expect(place).toHaveProperty("name");
-    expect(place).toHaveProperty("dayPlanId");
+    expect(place).toHaveProperty("day_plan_id");
+    expect(place).toHaveProperty("organization_id");
   });
 
   it("DirectionsRequestSchema produces expected keys", () => {

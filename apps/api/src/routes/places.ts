@@ -1,10 +1,12 @@
 import type { FastifyPluginAsync } from "fastify";
-import { prisma } from "@trip-planner/db";
 import {
   CreatePlaceSchema,
   UpdatePlaceSchema,
   ReorderPlacesSchema,
 } from "@trip-planner/core";
+import type { Database } from "@trip-planner/db";
+
+type PlaceRow = Database["public"]["Tables"]["places"]["Row"];
 
 export const placeRoutes: FastifyPluginAsync = async (app) => {
   // Create place
@@ -19,28 +21,44 @@ export const placeRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      try {
-        const place = await prisma.place.create({
-          data: {
-            ...parsed.data,
-            dayPlanId: request.params.dayPlanId,
-          },
-        });
-        return reply.status(201).send(place);
-      } catch {
-        return reply.status(404).send({ error: "Day plan not found" });
+      const { data, error } = await request.supabase
+        .from("places")
+        .insert({
+          organization_id: request.organizationId,
+          day_plan_id: request.params.dayPlanId,
+          name: parsed.data.name,
+          lat: parsed.data.lat,
+          lng: parsed.data.lng,
+          address: parsed.data.address ?? null,
+          category: parsed.data.category ?? null,
+          sort_order: parsed.data.sortOrder,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(400).send({ error: error.message });
       }
+
+      return reply.status(201).send(data);
     },
   );
 
   // List places for day
   app.get<{ Params: { dayPlanId: string } }>(
     "/days/:dayPlanId/places",
-    async (request) => {
-      return prisma.place.findMany({
-        where: { dayPlanId: request.params.dayPlanId },
-        orderBy: { sortOrder: "asc" },
-      });
+    async (request, reply) => {
+      const { data, error } = await request.supabase
+        .from("places")
+        .select("*")
+        .eq("day_plan_id", request.params.dayPlanId)
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return data;
     },
   );
 
@@ -56,15 +74,29 @@ export const placeRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      try {
-        const place = await prisma.place.update({
-          where: { id: request.params.id },
-          data: parsed.data,
-        });
-        return place;
-      } catch {
+      const updateData: Record<string, unknown> = {};
+      if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+      if (parsed.data.lat !== undefined) updateData.lat = parsed.data.lat;
+      if (parsed.data.lng !== undefined) updateData.lng = parsed.data.lng;
+      if (parsed.data.address !== undefined)
+        updateData.address = parsed.data.address;
+      if (parsed.data.category !== undefined)
+        updateData.category = parsed.data.category;
+      if (parsed.data.sortOrder !== undefined)
+        updateData.sort_order = parsed.data.sortOrder;
+
+      const { data, error } = await request.supabase
+        .from("places")
+        .update(updateData)
+        .eq("id", request.params.id)
+        .select()
+        .single();
+
+      if (error || !data) {
         return reply.status(404).send({ error: "Place not found" });
       }
+
+      return data;
     },
   );
 
@@ -72,12 +104,16 @@ export const placeRoutes: FastifyPluginAsync = async (app) => {
   app.delete<{ Params: { id: string } }>(
     "/places/:id",
     async (request, reply) => {
-      try {
-        await prisma.place.delete({ where: { id: request.params.id } });
-        return reply.status(204).send();
-      } catch {
+      const { error } = await request.supabase
+        .from("places")
+        .delete()
+        .eq("id", request.params.id);
+
+      if (error) {
         return reply.status(404).send({ error: "Place not found" });
       }
+
+      return reply.status(204).send();
     },
   );
 
@@ -93,15 +129,24 @@ export const placeRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const updates = parsed.data.placeIds.map((id, index) =>
-        prisma.place.update({
-          where: { id },
-          data: { sortOrder: index },
-        }),
-      );
+      // Supabase doesn't have transactions via JS client,
+      // so we upsert each place's sort_order sequentially
+      const results: PlaceRow[] = [];
+      for (let i = 0; i < parsed.data.placeIds.length; i++) {
+        const { data, error } = await request.supabase
+          .from("places")
+          .update({ sort_order: i })
+          .eq("id", parsed.data.placeIds[i])
+          .select()
+          .single();
 
-      const places = await prisma.$transaction(updates);
-      return places;
+        if (error) {
+          return reply.status(400).send({ error: error.message });
+        }
+        results.push(data);
+      }
+
+      return results;
     },
   );
 };

@@ -8,6 +8,7 @@ import type {
   Base,
   Activity,
 } from "@trip-planner/core";
+import type { SearchResult } from "@trip-planner/core";
 import { emptyPlanContext, tracked } from "@trip-planner/core";
 import type { GeoJSONFeatureCollection } from "@trip-planner/map";
 import type { PlaceClickData } from "@/components/MapInteractions";
@@ -52,6 +53,16 @@ export interface PlanStore {
 
   // Activity actions
   addActivity: (activity: Activity) => void;
+  assignActivityToDay: (id: string, dayIndex: number | null) => void;
+  removeActivity: (id: string) => void;
+
+  // Search state
+  searchResults: SearchResult[];
+  setSearchResults: (results: SearchResult[]) => void;
+
+  // Pending activity coords (from map click)
+  pendingActivityCoords: [number, number] | null;
+  setPendingActivityCoords: (coords: [number, number] | null) => void;
 
   // Context replacement (for loading mock/saved data)
   loadContext: (ctx: PlanContext) => void;
@@ -72,6 +83,8 @@ export const usePlanStore = create<PlanStore>()(
     isochroneFC: null,
     selectedPlace: null,
     routingProfile: "driving",
+    searchResults: [],
+    pendingActivityCoords: null,
 
     // Overlay
     setSelectedOverlay: (id) =>
@@ -137,6 +150,32 @@ export const usePlanStore = create<PlanStore>()(
     addActivity: (activity) =>
       set((s) => {
         s.context.activities.push(activity);
+      }),
+
+    assignActivityToDay: (id, dayIndex) =>
+      set((s) => {
+        const idx = s.context.activities.findIndex((a: Activity) => a.id === id);
+        if (idx === -1) return;
+        s.context.activities[idx].dayIndex =
+          dayIndex !== null ? (tracked(dayIndex) as Tracked<number>) : null;
+      }),
+
+    removeActivity: (id) =>
+      set((s) => {
+        s.context.activities = s.context.activities.filter(
+          (a: Activity) => a.id !== id
+        );
+      }),
+
+    // Search
+    setSearchResults: (results) =>
+      set((s) => {
+        s.searchResults = results;
+      }),
+
+    setPendingActivityCoords: (coords) =>
+      set((s) => {
+        s.pendingActivityCoords = coords;
       }),
 
     // Context

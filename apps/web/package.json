@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.5.0",
+    "@supabase/supabase-js": "^2.49.0",
     "@trip-planner/core": "workspace:*",
+    "@trip-planner/db": "workspace:*",
     "@trip-planner/map": "workspace:*",
     "immer": "^11.1.4",
     "mapbox-gl": "^3.9.0",

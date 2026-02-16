@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "fastify": "^5.2.0",
+    "fastify-plugin": "^5.0.0",
+    "@supabase/supabase-js": "^2.49.0",
     "@trip-planner/core": "workspace:*",
     "@trip-planner/db": "workspace:*",
     "@trip-planner/map": "workspace:*",
