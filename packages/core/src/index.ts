@@ -7,3 +7,4 @@ export * from "./plan-context";
 export * from "./plan-completeness";
 export * from "./cta-registry";
 export * from "./cta-engine";
+export * from "./trip-plan";
